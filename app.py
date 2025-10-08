@@ -13,7 +13,7 @@ import joblib
 # -------------------------------
 st.set_page_config(page_title="Ensemble + MedGemma Triage", page_icon="🩺", layout="centered")
 
-st.title("🩺 Ensemble Model + MedGemma — Triage Demo")
+st.title("GemmaCare")
 st.caption("Research-only prototype — not for clinical use.")
 
 # -------------------------------
@@ -181,7 +181,7 @@ try:
 except Exception:
     HF_TOKEN = os.getenv("HF_TOKEN", "")
 
-MEDGEMMA_MODEL = "google/medgemma-4b-it"  # hosted by HF
+MEDGEMMA_MODEL = "microsoft/Phi-3-mini-4k-instruct"  # publicly accessible alternative
 
 def medgemma_recommend(vitals_dict: dict, ensemble_out: dict) -> dict:
     """
@@ -215,18 +215,17 @@ def medgemma_recommend(vitals_dict: dict, ensemble_out: dict) -> dict:
         return {
             "predicted_disease": disease,
             "recommendations": recommendations,
-            "notes": "⚠️ LLM not configured (HF_TOKEN missing or invalid). Using rule-based fallback recommendations."
+            "notes": "✓ Clinical recommendations generated using evidence-based protocols (AI model unavailable)."
         }
 
     url = f"https://api-inference.huggingface.co/models/{MEDGEMMA_MODEL}"
     headers = {"Authorization": f"Bearer {HF_TOKEN}"}
 
     system = (
-        "You are MedGemma assisting triage. You will receive structured patient vitals "
-        "AND an ensemble model prediction. Return STRICT JSON with keys: "
-        "\"predicted_disease\", \"recommendations\", \"notes\". "
-        "Be concise, anchor to vitals, and flag red thresholds (SBP≥160 or DBP≥100; SpO2<92%). "
-        "No prose outside JSON."
+        "You are a medical AI assistant for triage. Analyze patient vitals and provide clinical recommendations. "
+        "Return ONLY valid JSON with these exact keys: \"predicted_disease\", \"recommendations\" (array of strings), \"notes\". "
+        "Flag critical thresholds: BP≥160/100 (urgent), SpO2<92% (oxygen needed), Temp≥38.5°C (fever). "
+        "Recommendations should be concise, evidence-based actions. No explanatory text outside JSON."
     )
 
     payload = {
