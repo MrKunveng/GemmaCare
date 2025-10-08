@@ -175,7 +175,12 @@ def predict_with_ensemble(v):
 # -------------------------------
 # MedGemma via Hugging Face Inference API (recommended on Streamlit Cloud)
 # -------------------------------
-HF_TOKEN = st.secrets.get("HF_TOKEN", os.getenv("HF_TOKEN", ""))  # add in Streamlit Secrets
+# Safely get HF_TOKEN from secrets or environment
+try:
+    HF_TOKEN = st.secrets.get("HF_TOKEN", "")
+except Exception:
+    HF_TOKEN = os.getenv("HF_TOKEN", "")
+
 MEDGEMMA_MODEL = "google/medgemma-4b-it"  # hosted by HF
 
 def medgemma_recommend(vitals_dict: dict, ensemble_out: dict) -> dict:
