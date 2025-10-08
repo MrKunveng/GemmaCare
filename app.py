@@ -46,9 +46,9 @@ def compute_bmi(weight_kg: float | None, height_cm: float | None) -> float | Non
 
 def build_feature_row(v):
     """
-    Build a DataFrame row that matches the actual model feature names.
+    Build a DataFrame row that matches the optimized model feature names.
     Model expects: Gender, Heart Rate (bpm), SpO2 Level (%), Systolic/Diastolic BP, 
-    Body Temperature, Weight_kg, BMI, Vital_Risk_Score, Alert_Count, etc.
+    Body Temperature, Weight_kg, BMI, BMI_Category, Vital_Risk_Score, Alert_Count
     """
     # Get actual feature names from model
     feature_names = None
@@ -58,31 +58,43 @@ def build_feature_row(v):
         feature_names = list(model.feature_names_in_)
     
     # Map user inputs to model features
-    # Calculate risk score based on vitals
-    vital_risk = 0
-    alert_count = 0
     sbp = v.get("sbp", 120)
     dbp = v.get("dbp", 80)
     spo2 = v.get("spo2", 95)
     temp = v.get("temperature_c", 37.0)
+    bmi = v.get("bmi", 25)
     
-    if sbp >= 180 or dbp >= 110:
-        vital_risk += 3
-        alert_count += 1
-    elif sbp >= 160 or dbp >= 100:
-        vital_risk += 2
-        alert_count += 1
+    # Calculate BMI category (0: <18.5, 1: 18.5-25, 2: 25-30, 3: >30)
+    if bmi < 18.5:
+        bmi_category = 0
+    elif bmi < 25:
+        bmi_category = 1
+    elif bmi < 30:
+        bmi_category = 2
+    else:
+        bmi_category = 3
     
+    # Calculate Vital Risk Score
+    vital_risk = 0
+    if sbp >= 140:
+        vital_risk += 1
+    if dbp >= 90:
+        vital_risk += 1
+    if spo2 < 95:
+        vital_risk += 1
+    if temp >= 38:
+        vital_risk += 1
+    
+    # Calculate Alert Count
+    alert_count = 0
+    if sbp >= 160:
+        alert_count += 1
+    if dbp >= 100:
+        alert_count += 1
     if spo2 < 92:
-        vital_risk += 2
-        alert_count += 1
-    elif spo2 < 95:
-        vital_risk += 1
-    
-    if temp >= 38.5:
-        vital_risk += 1
         alert_count += 1
     
+    # Build feature dictionary with exact feature names
     base = {
         "Gender": 1 if v.get("sex") == "M" else 0,
         "Heart Rate (bpm)": 75,  # Default, not collected in UI currently
@@ -91,19 +103,17 @@ def build_feature_row(v):
         "Diastolic Blood Pressure (mmHg)": dbp,
         "Body Temperature (C)": temp,
         "Weight_kg": v.get("weight_kg", 70),
-        "BMI": v.get("bmi", 25),
+        "BMI": bmi,
+        "BMI_Category": bmi_category,
         "Vital_Risk_Score": vital_risk,
         "Alert_Count": alert_count,
     }
     
     df = pd.DataFrame([base])
     
-    # Add any missing features with median/default values
+    # Ensure correct order if feature names available
     if feature_names:
-        for feat in feature_names:
-            if feat not in df.columns:
-                df[feat] = 0  # Default for unknown features
-        df = df[feature_names]  # Ensure correct order
+        df = df[feature_names]
     
     return df
 
@@ -116,14 +126,13 @@ def predict_with_ensemble(v):
 
     X = build_feature_row(v)
     
-    # Disease mapping (numeric to name)
+    # Disease mapping (numeric to name) - matches optimized model
     disease_map = {
-        0: "Normal/Healthy",
-        1: "Hypertension",
-        2: "Cardiac Arrhythmia", 
-        3: "Heart Failure",
-        4: "Respiratory Distress",
-        5: "Sepsis",
+        0: "Asthma",
+        1: "Diabetes Mellitus",
+        2: "Healthy",
+        3: "Heart Disease",
+        4: "Hypertension",
     }
     
     # Support both classifier APIs
