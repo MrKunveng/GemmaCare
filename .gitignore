@@ -1,0 +1,9 @@
+*.pyc
+__pycache__/
+.env
+.DS_Store
+*.log
+.streamlit/secrets.toml
+*.ipynb_checkpoints/
+disease_prediction_ensemble.pkl
+
