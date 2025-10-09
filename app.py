@@ -54,17 +54,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="main-header"><h1>🩺 GemmaCare</h1><p>AI-Powered Medical Triage System | 95% Accuracy</p></div>', unsafe_allow_html=True)
-
-# Disclaimer and AI Technology Information
 st.info("⚕️ **Research Prototype** - This system assists healthcare providers with triage. Not for direct clinical diagnosis without professional review.")
-
-st.markdown("""
-<div style="background-color: #f0f7ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #667eea; margin: 1rem 0;">
-    <h4 style="margin-top: 0; color: #667eea;">🤖 AI Technology Powering GemmaCare</h4>
-    <p style="margin-bottom: 0.5rem;"><strong>Disease Prediction:</strong> Powered by advanced Machine Learning ensemble model (XGBoost + LightGBM) trained on 60,000 patient records achieving 95.22% accuracy.</p>
-    <p style="margin-bottom: 0;"><strong>Clinical Recommendations & Notes:</strong> Generated using <strong>Google's MedGemma</strong>, a family of instruction-tuned large language models specifically designed for medical applications. MedGemma is built on Gemma architecture and fine-tuned on medical literature, clinical guidelines, and evidence-based medicine to provide safe, accurate, and contextually appropriate healthcare recommendations.</p>
-</div>
-""", unsafe_allow_html=True)
 
 # -------------------------------
 # Load ensemble model (.pkl)
@@ -76,7 +66,7 @@ def load_model():
         model_dict = joblib.load(path)
         # If it's a dict, extract the ensemble model
         if isinstance(model_dict, dict):
-        return model_dict
+            return model_dict
         return {"ensemble_model": model_dict}
     except Exception as e:
         st.error(f"Could not load model at `{path}`.\n{e}")
@@ -155,19 +145,19 @@ def predict_with_ensemble(v):
             classes = target_encoder.classes_
             proba_map = {disease: float(prob) for disease, prob in zip(classes, proba)}
         else:
-    disease_map = {
-        0: "Asthma",
-        1: "Diabetes Mellitus",
-        2: "Healthy",
-        3: "Heart Disease",
-        4: "Hypertension",
-    }
+            disease_map = {
+                0: "Asthma",
+                1: "Diabetes Mellitus", 
+                2: "Healthy",
+                3: "Heart Disease",
+                4: "Hypertension",
+            }
             label = disease_map.get(int(y_pred), f"Condition_{y_pred}")
             classes = model.classes_ if hasattr(model, "classes_") else list(range(len(proba)))
-        proba_map = {}
-        for c, p in zip(classes, proba):
-            disease_name = disease_map.get(int(c), f"Condition_{c}")
-            proba_map[disease_name] = float(p)
+            proba_map = {}
+            for c, p in zip(classes, proba):
+                disease_name = disease_map.get(int(c), f"Condition_{c}")
+                proba_map[disease_name] = float(p)
         
         conf = float(np.max(proba))
         
@@ -317,18 +307,9 @@ with st.sidebar:
     st.markdown("### 🎯 How It Works")
     st.markdown("""
     1. **Enter Patient Vitals** - Input vital signs and measurements
-    2. **ML Disease Prediction** - Ensemble model analyzes data (95% accuracy)
-    3. **MedGemma Recommendations** - Google's medical LLM generates evidence-based guidance
+    2. **AI Analysis** - Advanced ML model predicts condition (95% accuracy)
+    3. **Smart Recommendations** - Evidence-based health guidance
     4. **Critical Alerts** - Automatic flagging of dangerous vitals
-    """)
-    
-    st.markdown("### 🤖 AI Technologies")
-    st.markdown("""
-    **Disease Prediction:**  
-    XGBoost + LightGBM ensemble (95.22% accuracy)
-    
-    **Recommendations:**  
-    Google MedGemma - Medical instruction-tuned LLM trained on clinical guidelines and medical literature
     """)
     
     st.divider()
@@ -407,7 +388,7 @@ with st.form("vitals_form"):
     
     # Symptoms (Optional)
     with st.expander("➕ Additional Symptoms (Optional)", expanded=False):
-    symptoms = st.multiselect(
+        symptoms = st.multiselect(
             "Select any symptoms present",
             ["Chest Pain", "Shortness of Breath", "Palpitations", "Fatigue", "Dizziness", "Headache", "Nausea", "Sweating"],
             default=[]
@@ -590,14 +571,4 @@ if submitted:
     with col_btn2:
         if st.button("🔄 Analyze Another Patient", use_container_width=True):
             st.rerun()
-    
-    # Footer Attribution
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; padding: 1rem; color: #666; font-size: 0.9rem;">
-        <p style="margin: 0.25rem 0;">🧠 <strong>Powered by Google MedGemma</strong> - Medical instruction-tuned LLM for evidence-based clinical recommendations</p>
-        <p style="margin: 0.25rem 0;">🔬 Disease prediction: XGBoost + LightGBM ensemble trained on 60,000 patient records</p>
-        <p style="margin: 0.25rem 0;">📋 Recommendations based on latest evidence-based medical guidelines</p>
-    </div>
-    """, unsafe_allow_html=True)
 
