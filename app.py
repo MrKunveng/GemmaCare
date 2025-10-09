@@ -69,8 +69,7 @@ st.markdown("""
         a family of state-of-the-art medical large language models built on the Gemma architecture. MedGemma is 
         instruction-tuned specifically for medical applications using extensive medical literature, clinical practice 
         guidelines, and evidence-based medicine. This specialized training enables MedGemma to provide safe, accurate, 
-        and contextually appropriate healthcare recommendations aligned with the latest clinical standards 
-        (ADA 2024-2025, ESC 2024, GINA 2024, WHO 2020).
+        and contextually appropriate healthcare recommendations aligned with the latest clinical standards.
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -85,7 +84,7 @@ def load_model():
         model_dict = joblib.load(path)
         # If it's a dict, extract the ensemble model
         if isinstance(model_dict, dict):
-            return model_dict
+        return model_dict
         return {"ensemble_model": model_dict}
     except Exception as e:
         st.error(f"Could not load model at `{path}`.\n{e}")
@@ -164,19 +163,19 @@ def predict_with_ensemble(v):
             classes = target_encoder.classes_
             proba_map = {disease: float(prob) for disease, prob in zip(classes, proba)}
         else:
-            disease_map = {
-                0: "Asthma",
-                1: "Diabetes Mellitus",
-                2: "Healthy",
-                3: "Heart Disease",
-                4: "Hypertension",
-            }
+    disease_map = {
+        0: "Asthma",
+        1: "Diabetes Mellitus",
+        2: "Healthy",
+        3: "Heart Disease",
+        4: "Hypertension",
+    }
             label = disease_map.get(int(y_pred), f"Condition_{y_pred}")
             classes = model.classes_ if hasattr(model, "classes_") else list(range(len(proba)))
-            proba_map = {}
-            for c, p in zip(classes, proba):
-                disease_name = disease_map.get(int(c), f"Condition_{c}")
-                proba_map[disease_name] = float(p)
+        proba_map = {}
+        for c, p in zip(classes, proba):
+            disease_name = disease_map.get(int(c), f"Condition_{c}")
+            proba_map[disease_name] = float(p)
         
         conf = float(np.max(proba))
         
@@ -418,7 +417,7 @@ with st.form("vitals_form"):
     
     # Symptoms (Optional)
     with st.expander("➕ Additional Symptoms (Optional)", expanded=False):
-        symptoms = st.multiselect(
+    symptoms = st.multiselect(
             "Select any symptoms present",
             ["Chest Pain", "Shortness of Breath", "Palpitations", "Fatigue", "Dizziness", "Headache", "Nausea", "Sweating"],
             default=[]
@@ -608,7 +607,7 @@ if submitted:
     <div style="text-align: center; padding: 1rem; color: #666; font-size: 0.9rem;">
         <p style="margin: 0.25rem 0;">🧠 <strong>Powered by Google MedGemma</strong> - Medical instruction-tuned LLM for evidence-based clinical recommendations</p>
         <p style="margin: 0.25rem 0;">🔬 Disease prediction: XGBoost + LightGBM ensemble trained on 60,000 patient records</p>
-        <p style="margin: 0.25rem 0;">📋 Recommendations based on latest evidence-based medical guidelines (ADA 2024-2025, ESC 2024, GINA 2024, WHO 2020)</p>
+        <p style="margin: 0.25rem 0;">📋 Recommendations.</p>
     </div>
     """, unsafe_allow_html=True)
 
