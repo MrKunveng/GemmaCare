@@ -62,7 +62,7 @@ st.markdown("""
 <div style="background-color: #f0f7ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #667eea; margin: 1rem 0;">
     <h4 style="margin-top: 0; color: #667eea;">🤖 AI Technology Powering GemmaCare</h4>
     <p style="margin-bottom: 0.5rem;"><strong>Disease Prediction:</strong> Powered by advanced Machine Learning ensemble model (XGBoost + LightGBM) trained on 60,000 patient records achieving 95.22% accuracy.</p>
-    <p style="margin-bottom: 0;"><strong>Clinical Recommendations & Notes:</strong> Generated using <strong>Google's MedGemma</strong>, a family of instruction-tuned large language models specifically designed for medical applications. MedGemma is built on Gemma architecture and fine-tuned on medical literature, clinical guidelines, and evidence-based medicine to provide safe, accurate, and contextually appropriate healthcare recommendations following the latest ADA 2024-2025, ESC 2024, GINA 2024, and WHO 2020 standards.</p>
+    <p style="margin-bottom: 0;"><strong>Clinical Recommendations & Notes:</strong> Generated using <strong>Google's MedGemma</strong>, a family of instruction-tuned large language models specifically designed for medical applications. MedGemma is built on Gemma architecture and fine-tuned on medical literature, clinical guidelines, and evidence-based medicine to provide safe, accurate, and contextually appropriate healthcare recommendations.</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -597,7 +597,7 @@ if submitted:
     <div style="text-align: center; padding: 1rem; color: #666; font-size: 0.9rem;">
         <p style="margin: 0.25rem 0;">🧠 <strong>Powered by Google MedGemma</strong> - Medical instruction-tuned LLM for evidence-based clinical recommendations</p>
         <p style="margin: 0.25rem 0;">🔬 Disease prediction: XGBoost + LightGBM ensemble trained on 60,000 patient records</p>
-        <p style="margin: 0.25rem 0;">📋 Recommendations based on ADA 2024-2025, ESC 2024, GINA 2024, WHO 2020 guidelines</p>
+        <p style="margin: 0.25rem 0;">📋 Recommendations based on latest evidence-based medical guidelines</p>
     </div>
     """, unsafe_allow_html=True)
 
