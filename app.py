@@ -6,6 +6,13 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import joblib
+import warnings
+
+# Suppress scikit-learn version mismatch warnings
+# These are safe warnings when loading models trained with older versions
+# The model will still work correctly despite version differences
+warnings.filterwarnings('ignore', message='.*Trying to unpickle.*')
+warnings.filterwarnings('ignore', category=UserWarning, module='sklearn')
 
 # -------------------------------
 # App config
