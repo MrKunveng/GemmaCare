@@ -7,10 +7,12 @@ import pandas as pd
 import streamlit as st
 import joblib
 import warnings
+from sklearn.exceptions import InconsistentVersionWarning
 
 # Suppress scikit-learn version mismatch warnings
 # These are safe warnings when loading models trained with older versions
 # The model will still work correctly despite version differences
+warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 warnings.filterwarnings('ignore', message='.*Trying to unpickle.*')
 warnings.filterwarnings('ignore', category=UserWarning, module='sklearn')
 
@@ -179,7 +181,10 @@ def predict_with_ensemble(v):
         
         # Decode prediction
         if target_encoder:
-            label_array = target_encoder.inverse_transform([int(y_pred)])
+            # Ensure it's an array and explicitly extract Python scalar to avoid deprecation warning
+            encoded_pred = np.array([int(y_pred)])
+            label_array = target_encoder.inverse_transform(encoded_pred)
+            # Explicitly extract Python scalar using .item() to avoid NumPy deprecation warning
             label = label_array[0].item() if hasattr(label_array[0], 'item') else str(label_array[0])
             classes = target_encoder.classes_
             # Convert classes to list if it's a numpy array
