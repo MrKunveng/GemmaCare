@@ -158,11 +158,17 @@ def predict_with_ensemble(v):
         proba = model.predict_proba(X)[0]
         y_pred = model.predict(X)[0]
         
+        # Convert numpy scalars to Python scalars to avoid conversion errors
+        if hasattr(y_pred, 'item'):
+            y_pred = y_pred.item()
+        else:
+            y_pred = int(y_pred)
+        
         # Decode prediction
         if target_encoder:
             label = target_encoder.inverse_transform([int(y_pred)])[0]
             classes = target_encoder.classes_
-            proba_map = {disease: float(prob) for disease, prob in zip(classes, proba)}
+            proba_map = {disease: float(prob.item() if hasattr(prob, 'item') else prob) for disease, prob in zip(classes, proba)}
         else:
             disease_map = {
                 0: "Asthma",
@@ -175,10 +181,15 @@ def predict_with_ensemble(v):
             classes = model.classes_ if hasattr(model, "classes_") else list(range(len(proba)))
             proba_map = {}
             for c, p in zip(classes, proba):
-                disease_name = disease_map.get(int(c), f"Condition_{c}")
-                proba_map[disease_name] = float(p)
+                # Convert numpy scalars to Python scalars
+                c_val = c.item() if hasattr(c, 'item') else int(c)
+                p_val = p.item() if hasattr(p, 'item') else float(p)
+                disease_name = disease_map.get(int(c_val), f"Condition_{c_val}")
+                proba_map[disease_name] = p_val
         
-        conf = float(np.max(proba))
+        # Convert numpy scalar to Python float
+        conf_val = np.max(proba)
+        conf = float(conf_val.item() if hasattr(conf_val, 'item') else conf_val)
         
     except Exception as e:
         st.error(f"Prediction error: {e}")
