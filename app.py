@@ -155,20 +155,34 @@ def predict_with_ensemble(v):
     target_encoder = model_dict.get('target_encoder') if model_dict else None
     
     try:
-        proba = model.predict_proba(X)[0]
-        y_pred = model.predict(X)[0]
+        proba_array = model.predict_proba(X)[0]
+        y_pred_array = model.predict(X)[0]
         
         # Convert numpy scalars to Python scalars to avoid conversion errors
-        if hasattr(y_pred, 'item'):
-            y_pred = y_pred.item()
+        if hasattr(y_pred_array, 'item'):
+            y_pred = y_pred_array.item()
+        elif hasattr(y_pred_array, '__len__') and len(y_pred_array) == 1:
+            y_pred = int(y_pred_array[0])
         else:
-            y_pred = int(y_pred)
+            y_pred = int(y_pred_array)
+        
+        # Ensure proba is a numpy array for iteration
+        if not isinstance(proba_array, np.ndarray):
+            proba_array = np.array(proba_array)
         
         # Decode prediction
         if target_encoder:
-            label = target_encoder.inverse_transform([int(y_pred)])[0]
+            label_array = target_encoder.inverse_transform([int(y_pred)])
+            label = label_array[0].item() if hasattr(label_array[0], 'item') else str(label_array[0])
             classes = target_encoder.classes_
-            proba_map = {disease: float(prob.item() if hasattr(prob, 'item') else prob) for disease, prob in zip(classes, proba)}
+            # Convert classes to list if it's a numpy array
+            if hasattr(classes, 'tolist'):
+                classes = classes.tolist()
+            proba_map = {}
+            for disease, prob in zip(classes, proba_array):
+                prob_val = prob.item() if hasattr(prob, 'item') else float(prob)
+                disease_str = str(disease)
+                proba_map[disease_str] = prob_val
         else:
             disease_map = {
                 0: "Asthma",
@@ -178,9 +192,12 @@ def predict_with_ensemble(v):
                 4: "Hypertension",
             }
             label = disease_map.get(int(y_pred), f"Condition_{y_pred}")
-            classes = model.classes_ if hasattr(model, "classes_") else list(range(len(proba)))
+            classes = model.classes_ if hasattr(model, "classes_") else list(range(len(proba_array)))
+            # Convert classes to list if it's a numpy array
+            if hasattr(classes, 'tolist'):
+                classes = classes.tolist()
             proba_map = {}
-            for c, p in zip(classes, proba):
+            for c, p in zip(classes, proba_array):
                 # Convert numpy scalars to Python scalars
                 c_val = c.item() if hasattr(c, 'item') else int(c)
                 p_val = p.item() if hasattr(p, 'item') else float(p)
@@ -188,7 +205,7 @@ def predict_with_ensemble(v):
                 proba_map[disease_name] = p_val
         
         # Convert numpy scalar to Python float
-        conf_val = np.max(proba)
+        conf_val = np.max(proba_array)
         conf = float(conf_val.item() if hasattr(conf_val, 'item') else conf_val)
         
     except Exception as e:
