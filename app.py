@@ -1,7 +1,6 @@
 import os
 import json
 import time
-import requests
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -9,646 +8,998 @@ import joblib
 import warnings
 from sklearn.exceptions import InconsistentVersionWarning
 
-# Suppress scikit-learn version mismatch warnings
-# These are safe warnings when loading models trained with older versions
-# The model will still work correctly despite version differences
 warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
-warnings.filterwarnings('ignore', message='.*Trying to unpickle.*')
-warnings.filterwarnings('ignore', category=UserWarning, module='sklearn')
+warnings.filterwarnings("ignore", message=".*Trying to unpickle.*")
+warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
 
-# -------------------------------
-# App config
-# -------------------------------
+# ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="GemmaCare - AI Medical Triage", 
-    page_icon="🩺", 
+    page_title="GemmaCare · AI Medical Triage",
+    page_icon="🩺",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
-# Custom CSS for better styling
+# ── Design system ─────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    .main-header {
-        text-align: center;
-        padding: 1rem 0;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 10px;
-        margin-bottom: 2rem;
-    }
-    .stButton>button {
-        width: 100%;
-        background-color: #667eea;
-        color: white;
-        font-weight: bold;
-        border-radius: 8px;
-        padding: 0.75rem;
-        border: none;
-        font-size: 1.1rem;
-    }
-    .stButton>button:hover {
-        background-color: #764ba2;
-        border: none;
-    }
-    div[data-testid="stNumberInput"] label {
-        font-weight: 600;
-        color: #333;
-    }
-    div[data-testid="stSelectbox"] label {
-        font-weight: 600;
-        color: #333;
-    }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ─── Reset & base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body, [class*="css"] {
+  font-family: 'Inter', sans-serif;
+  color: #1e1e2e;
+}
+.main .block-container {
+  padding-top: 1.5rem;
+  padding-bottom: 3rem;
+  max-width: 1100px;
+}
+
+/* ─── Animated hero banner ─────────────────────────────────────── */
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.08); }
+}
+.gc-hero {
+  text-align: center;
+  padding: 2.5rem 2rem 2rem;
+  background: linear-gradient(-45deg, #667eea, #764ba2, #5e6ef7, #a855f7);
+  background-size: 400% 400%;
+  animation: gradientShift 8s ease infinite;
+  color: white;
+  border-radius: 20px;
+  margin-bottom: 1.75rem;
+  box-shadow: 0 20px 60px rgba(102,126,234,0.35), 0 4px 16px rgba(0,0,0,0.08);
+  position: relative;
+  overflow: hidden;
+}
+.gc-hero::before {
+  content: "";
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 200px; height: 200px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 50%;
+}
+.gc-hero::after {
+  content: "";
+  position: absolute;
+  bottom: -60px; left: -30px;
+  width: 240px; height: 240px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 50%;
+}
+.gc-hero-icon {
+  font-size: 3rem;
+  display: block;
+  animation: pulse 2.5s ease-in-out infinite;
+  margin-bottom: 0.4rem;
+}
+.gc-hero h1 {
+  margin: 0 0 0.35rem;
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.gc-hero .gc-hero-sub {
+  font-size: 1rem;
+  opacity: 0.88;
+  margin: 0 0 1.2rem;
+  font-weight: 400;
+}
+.gc-hero-chips {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.gc-hero-chip {
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 999px;
+  padding: 0.25rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Alert / disclaimer banners ───────────────────────────────── */
+.gc-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.9rem 1.2rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+.gc-banner-warn {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 4px solid #f59e0b;
+  color: #78350f;
+}
+.gc-banner-info {
+  background: #f0f5ff;
+  border: 1px solid #c7d7ff;
+  border-left: 4px solid #667eea;
+  color: #312e81;
+}
+.gc-banner-icon { font-size: 1.1rem; margin-top: 0.05rem; flex-shrink: 0; }
+
+/* ─── Form container card ──────────────────────────────────────── */
+.gc-form-card {
+  background: #ffffff;
+  border: 1px solid #e8ecff;
+  border-radius: 16px;
+  padding: 1.75rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 12px rgba(102,126,234,0.06), 0 1px 3px rgba(0,0,0,0.04);
+}
+
+/* ─── Form section headers ─────────────────────────────────────── */
+.gc-form-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #667eea;
+  margin: 1.5rem 0 0.9rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1.5px solid #e8ecff;
+}
+.gc-form-section:first-child { margin-top: 0; }
+
+/* ─── Submit button ────────────────────────────────────────────── */
+div[data-testid="stFormSubmitButton"] > button {
+  width: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  font-weight: 700 !important;
+  font-size: 1.05rem !important;
+  border-radius: 12px !important;
+  padding: 0.85rem 2rem !important;
+  border: none !important;
+  box-shadow: 0 6px 20px rgba(102,126,234,0.4) !important;
+  transition: all 0.2s ease !important;
+  letter-spacing: 0.01em !important;
+}
+div[data-testid="stFormSubmitButton"] > button:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 28px rgba(102,126,234,0.5) !important;
+}
+div[data-testid="stFormSubmitButton"] > button:active {
+  transform: translateY(0) !important;
+}
+
+/* ─── Generic secondary buttons ────────────────────────────────── */
+.stButton > button {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  transition: all 0.18s ease !important;
+}
+.stButton > button:hover { transform: translateY(-1px) !important; }
+
+/* ─── Results: section label ───────────────────────────────────── */
+.gc-results-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #888;
+  margin: 2rem 0 0.75rem;
+}
+.gc-results-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, #e0e5ff, transparent);
+}
+
+/* ─── Diagnosis hero card ──────────────────────────────────────── */
+.gc-dx-card {
+  border-radius: 18px;
+  padding: 1.75rem 2rem;
+  margin-bottom: 1.5rem;
+  border-left: 6px solid;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.07);
+}
+.gc-dx-card::after {
+  content: "";
+  position: absolute;
+  top: -30px; right: -30px;
+  width: 130px; height: 130px;
+  border-radius: 50%;
+  opacity: 0.08;
+  background: currentColor;
+}
+.gc-dx-card .gc-dx-icon { font-size: 2.4rem; margin-bottom: 0.4rem; display: block; }
+.gc-dx-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.gc-dx-card .gc-dx-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
+  color: #555;
+}
+
+/* ─── Risk / confidence badges ─────────────────────────────────── */
+.gc-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.gc-pill-critical { background: #fee2e2; color: #b91c1c; }
+.gc-pill-high     { background: #ffedd5; color: #c2410c; }
+.gc-pill-moderate { background: #fef9c3; color: #a16207; }
+.gc-pill-low      { background: #dcfce7; color: #166534; }
+.gc-pill-conf     { background: #ede9fe; color: #5b21b6; }
+
+/* ─── Vital metric cards ───────────────────────────────────────── */
+.gc-vital {
+  background: #ffffff;
+  border: 1px solid #eef0ff;
+  border-radius: 14px;
+  padding: 1rem 0.75rem 0.85rem;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(102,126,234,0.06);
+  transition: box-shadow 0.2s;
+  height: 100%;
+}
+.gc-vital:hover { box-shadow: 0 6px 20px rgba(102,126,234,0.13); }
+.gc-vital-emoji { font-size: 1.5rem; display: block; margin-bottom: 0.3rem; }
+.gc-vital-val   { font-size: 1.45rem; font-weight: 700; color: #1e1e2e; line-height: 1.1; }
+.gc-vital-name  { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: #9ca3af; margin: 0.25rem 0 0.15rem; }
+.gc-vital-unit  { font-size: 0.72rem; color: #aaa; }
+.gc-vital-ok    { border-top: 3px solid #22c55e; }
+.gc-vital-warn  { border-top: 3px solid #f59e0b; }
+.gc-vital-crit  { border-top: 3px solid #ef4444; }
+
+/* ─── Symptoms tag strip ────────────────────────────────────────── */
+.gc-symptom-tag {
+  display: inline-block;
+  background: #f3f0ff;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.76rem;
+  font-weight: 500;
+  margin: 0.15rem;
+}
+
+/* ─── Probability chart ─────────────────────────────────────────── */
+.gc-prob-wrap {
+  background: #ffffff;
+  border: 1px solid #eef0ff;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 2px 10px rgba(102,126,234,0.05);
+}
+.gc-prob-row { margin: 0.7rem 0; }
+.gc-prob-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+.gc-prob-name  { font-size: 0.87rem; font-weight: 500; color: #374151; }
+.gc-prob-name.top { font-weight: 700; color: #1e1e2e; }
+.gc-prob-pct   { font-size: 0.87rem; font-weight: 600; }
+.gc-bar-track {
+  background: #f1f3ff;
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+.gc-bar-fill {
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--c1), var(--c2));
+}
+
+/* ─── Recommendation card ───────────────────────────────────────── */
+.gc-rec {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  background: #fafbff;
+  border: 1px solid #e8ecff;
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  margin: 0.5rem 0;
+  line-height: 1.65;
+  font-size: 0.9rem;
+  color: #374151;
+}
+.gc-rec-num {
+  flex-shrink: 0;
+  width: 1.6rem; height: 1.6rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-top: 0.1rem;
+}
+
+/* ─── Clinical notes card ───────────────────────────────────────── */
+.gc-notes {
+  background: #fafbff;
+  border: 1px solid #e0e7ff;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.gc-notes-header {
+  background: linear-gradient(135deg, #667eea11, #764ba211);
+  border-bottom: 1px solid #e0e7ff;
+  padding: 0.7rem 1.25rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #667eea;
+}
+.gc-notes-body {
+  padding: 1.2rem 1.5rem;
+  font-size: 0.91rem;
+  line-height: 1.7;
+  color: #374151;
+}
+
+/* ─── Action button row ─────────────────────────────────────────── */
+.gc-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* ─── Footer ────────────────────────────────────────────────────── */
+.gc-footer {
+  text-align: center;
+  padding: 1.5rem 1rem 0.5rem;
+  margin-top: 2rem;
+  border-top: 1px solid #f0f0f0;
+  font-size: 0.8rem;
+  color: #aaa;
+  line-height: 1.8;
+}
+.gc-footer strong { color: #888; }
+
+/* ─── Sidebar ───────────────────────────────────────────────────── */
+[data-testid="stSidebar"] {
+  background: linear-gradient(180deg, #f4f5ff 0%, #fafaff 100%);
+}
+[data-testid="stSidebar"] > div:first-child { padding-top: 0; }
+
+.gc-sb-brand {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  padding: 1.5rem 1rem 1.2rem;
+  text-align: center;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+.gc-sb-brand .gc-sb-icon { font-size: 2.5rem; display: block; margin-bottom: 0.3rem; }
+.gc-sb-brand h2 { margin: 0; font-size: 1.3rem; font-weight: 800; letter-spacing: -0.01em; }
+.gc-sb-brand p  { margin: 0.2rem 0 0; font-size: 0.74rem; opacity: 0.8; font-weight: 400; }
+
+.gc-sb-section {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #9ca3af;
+  padding: 1rem 1rem 0.4rem;
+}
+
+.gc-sb-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.35rem 1rem;
+  font-size: 0.83rem;
+  color: #374151;
+  line-height: 1.4;
+}
+.gc-sb-step-num {
+  flex-shrink: 0;
+  width: 1.3rem; height: 1.3rem;
+  background: #667eea;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+  margin-top: 0.05rem;
+}
+
+.gc-sb-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border: 1px solid #e8ecff;
+  border-radius: 10px;
+  padding: 0.6rem 0.85rem;
+  margin: 0.25rem 1rem;
+  font-size: 0.82rem;
+}
+.gc-sb-stat-val { font-weight: 700; color: #667eea; }
+
+.gc-sb-cond {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 1rem;
+  font-size: 0.83rem;
+  color: #374151;
+}
+
+.gc-sb-feat {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.2rem 1rem;
+  background: white;
+  border: 1px solid #e8ecff;
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+/* ─── Streamlit overrides ───────────────────────────────────────── */
+div[data-testid="stNumberInput"] label,
+div[data-testid="stSelectbox"] label,
+div[data-testid="stTextInput"] label,
+div[data-testid="stMultiSelect"] label {
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+div[data-testid="stNumberInput"] input,
+div[data-testid="stTextInput"] input {
+  border-radius: 8px !important;
+  border-color: #d1d9ff !important;
+}
+div[data-testid="stNumberInput"] input:focus,
+div[data-testid="stTextInput"] input:focus {
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.15) !important;
+}
+div[data-testid="stSelectbox"] > div > div {
+  border-radius: 8px !important;
+  border-color: #d1d9ff !important;
+}
+.stExpander { border-radius: 10px !important; border-color: #d1d9ff !important; }
+
+/* hide streamlit default hr */
+hr { border-color: #f0f0f0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="main-header"><h1>🩺 GemmaCare</h1><p>AI-Powered Medical Triage System | 95% Accuracy</p></div>', unsafe_allow_html=True)
-st.info("⚕️ **Research Prototype** - This system assists healthcare providers with triage. Not for direct clinical diagnosis without professional review.")
-
-# AI Technology Disclaimer
+# ── Hero ──────────────────────────────────────────────────────────────────────
 st.markdown("""
-<div style="background-color: #f0f7ff; padding: 1.2rem; border-radius: 10px; border-left: 4px solid #667eea; margin: 1rem 0;">
-    <h4 style="margin-top: 0; color: #667eea;">🤖 AI Technology Powering GemmaCare</h4>
-    <p style="margin-bottom: 0.5rem;">
-        <strong>🔬 Disease Prediction:</strong> Powered by advanced Machine Learning ensemble model (XGBoost + LightGBM) 
-        trained on 60,000 patient records, achieving 95.22% accuracy in identifying 5 key health conditions.
-    </p>
-    <p style="margin-bottom: 0;">
-        <strong>📋 Clinical Recommendations & Notes:</strong> Generated using <strong>Google's MedGemma</strong>, 
-        a family of state-of-the-art medical large language models built on the Gemma architecture. MedGemma is 
-        instruction-tuned specifically for medical applications using extensive medical literature, clinical practice 
-        guidelines, and evidence-based medicine. This specialized training enables MedGemma to provide safe, accurate, 
-        and contextually appropriate healthcare recommendations aligned with the latest clinical standards 
-        (ADA 2024-2025, ESC 2024, GINA 2024, WHO 2020).
-    </p>
+<div class="gc-hero">
+  <span class="gc-hero-icon">🩺</span>
+  <h1>GemmaCare</h1>
+  <p class="gc-hero-sub">AI-Powered Medical Triage &amp; Clinical Decision Support</p>
+  <div class="gc-hero-chips">
+    <span class="gc-hero-chip">⚡ 95.22% Accuracy</span>
+    <span class="gc-hero-chip">🔬 60K Patient Records</span>
+    <span class="gc-hero-chip">📋 MedGemma Powered</span>
+    <span class="gc-hero-chip">🚨 Critical Alert System</span>
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
-# -------------------------------
-# Load ensemble model (.pkl)
-# -------------------------------
+# ── Banners ───────────────────────────────────────────────────────────────────
+st.markdown("""
+<div class="gc-banner gc-banner-warn">
+  <span class="gc-banner-icon">⚕️</span>
+  <span><strong>Research Prototype</strong> — This system is designed to assist healthcare providers
+  with triage decisions. It is <em>not</em> a substitute for direct clinical evaluation or diagnosis
+  by a qualified healthcare professional.</span>
+</div>
+
+<div class="gc-banner gc-banner-info">
+  <span class="gc-banner-icon">🤖</span>
+  <div>
+    <strong>Disease Prediction</strong> is powered by an XGBoost + LightGBM ensemble trained on
+    60,000 patient records (95.22% accuracy across 5 conditions).&nbsp;
+    <strong>Clinical Recommendations</strong> are generated using <strong>Google MedGemma</strong>,
+    aligned with ADA 2024–25, ESC 2024, GINA 2024, and WHO 2020 guidelines.
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ── Load model ────────────────────────────────────────────────────────────────
 @st.cache_resource(show_spinner=False)
 def load_model():
     path = "best_disease_model.pkl"
     try:
-        model_dict = joblib.load(path)
-        # If it's a dict, extract the ensemble model
-        if isinstance(model_dict, dict):
-            return model_dict
-        return {"ensemble_model": model_dict}
+        obj = joblib.load(path)
+        return obj if isinstance(obj, dict) else {"model": obj}
     except Exception as e:
         st.error(f"Could not load model at `{path}`.\n{e}")
         return None
 
 model_dict = load_model()
-model = model_dict.get('model') if model_dict else None
+model = model_dict.get("model") if model_dict else None
 
-# -------------------------------
-# Helpers
-# -------------------------------
-def compute_bmi(weight_kg: float | None, height_cm: float | None) -> float | None:
+# ── Helpers ───────────────────────────────────────────────────────────────────
+def compute_bmi(weight_kg, height_cm):
     if not weight_kg or not height_cm or height_cm <= 0:
         return None
-    h_m = height_cm / 100.0
-    return round(weight_kg / (h_m * h_m), 1)
+    h = height_cm / 100.0
+    return round(weight_kg / (h * h), 1)
+
+def bmi_category(bmi):
+    if bmi is None:
+        return ("N/A", "#999", "#f0f0f0")
+    if bmi < 18.5:
+        return ("Underweight", "#0369a1", "#e0f2fe")
+    if bmi < 25.0:
+        return ("Normal",      "#166534", "#dcfce7")
+    if bmi < 30.0:
+        return ("Overweight",  "#92400e", "#fef3c7")
+    return     ("Obese",       "#991b1b", "#fee2e2")
+
+def vital_status(key, value):
+    """Returns CSS class suffix: ok / warn / crit based on clinical ranges."""
+    if key == "sbp":
+        return "crit" if value >= 180 else "warn" if value >= 140 else "ok"
+    if key == "dbp":
+        return "crit" if value >= 110 else "warn" if value >= 90 else "ok"
+    if key == "spo2":
+        return "crit" if value < 90 else "warn" if value < 95 else "ok"
+    if key == "temp":
+        return "crit" if value >= 40 else "warn" if value >= 38 else "ok"
+    if key == "hr":
+        return "crit" if value > 150 or value < 40 else "warn" if value > 100 or value < 60 else "ok"
+    return "ok"
 
 def build_feature_row(v):
-    """Build a DataFrame row that matches the model's expected features."""
-    sbp = v.get("sbp", 120)
-    dbp = v.get("dbp", 80)
-    spo2 = v.get("spo2", 95)
-    temp = v.get("temperature_c", 37.0)
-    bmi = v.get("bmi", 25)
-    heart_rate = v.get("heart_rate", 75)
-    weight_kg = v.get("weight_kg", 70)
-    height_cm = v.get("height_cm", 170)
-    
-    # Build feature dictionary matching model's expected columns
-    # Model expects: Gender, Heart Rate (bpm), SpO2 Level (%), Systolic/Diastolic BP, 
-    # Body Temperature (C), Weight_kg, Height_cm, BMI
     features = {
-        "Gender": 1 if v.get("sex") == "M" else 0,
-        "Heart Rate (bpm)": heart_rate,
-        "SpO2 Level (%)": spo2,
-        "Systolic Blood Pressure (mmHg)": sbp,
-        "Diastolic Blood Pressure (mmHg)": dbp,
-        "Body Temperature (C)": temp,
-        "Weight_kg": weight_kg,
-        "Height_cm": height_cm,
-        "BMI": bmi,
+        "Gender":                           1 if v.get("sex") == "M" else 0,
+        "Heart Rate (bpm)":                 v.get("heart_rate", 75),
+        "SpO2 Level (%)":                   v.get("spo2", 95),
+        "Systolic Blood Pressure (mmHg)":   v.get("sbp", 120),
+        "Diastolic Blood Pressure (mmHg)":  v.get("dbp", 80),
+        "Body Temperature (C)":             v.get("temperature_c", 37.0),
+        "Weight_kg":                        v.get("weight_kg", 70),
+        "Height_cm":                        v.get("height_cm", 170),
+        "BMI":                              v.get("bmi", 25),
     }
-    
-    # Create DataFrame
     df = pd.DataFrame([features])
-    
-    # Apply scaling if available
-    if model_dict and 'scaler' in model_dict and model_dict['scaler']:
-        # Get feature columns from model
-        feature_cols = model_dict.get('feature_columns', df.columns.tolist())
-        # Ensure df has the right columns in the right order
-        df = df[feature_cols]
-        # Scale the features
-        df_scaled = model_dict['scaler'].transform(df)
-        df = pd.DataFrame(df_scaled, columns=feature_cols)
-    
+    if model_dict and model_dict.get("scaler"):
+        cols = model_dict.get("feature_columns", df.columns.tolist())
+        df = df[cols]
+        df = pd.DataFrame(model_dict["scaler"].transform(df), columns=cols)
     return df
 
 def predict_with_ensemble(v):
-    """Returns dict: {'disease': str, 'confidence': float, 'risk_level': str, 'proba': dict}"""
     if model is None:
         return {"disease": "Unknown", "confidence": 0.0, "risk_level": "unknown", "proba": {}}
-
     X = build_feature_row(v)
-    
-    # Get target encoder
-    target_encoder = model_dict.get('target_encoder') if model_dict else None
-    
+    target_encoder = model_dict.get("target_encoder") if model_dict else None
     try:
         proba_array = model.predict_proba(X)[0]
-        y_pred_array = model.predict(X)[0]
-        
-        # Convert numpy scalars to Python scalars to avoid conversion errors
-        if hasattr(y_pred_array, 'item'):
-            y_pred = y_pred_array.item()
-        elif hasattr(y_pred_array, '__len__') and len(y_pred_array) == 1:
-            y_pred = int(y_pred_array[0])
-        else:
-            y_pred = int(y_pred_array)
-        
-        # Ensure proba is a numpy array for iteration
+        y_raw = model.predict(X)[0]
+        y_pred = y_raw.item() if hasattr(y_raw, "item") else int(y_raw)
         if not isinstance(proba_array, np.ndarray):
             proba_array = np.array(proba_array)
-        
-        # Decode prediction
+
         if target_encoder:
-            # Ensure it's an array and explicitly extract Python scalar to avoid deprecation warning
-            encoded_pred = np.array([int(y_pred)])
-            label_array = target_encoder.inverse_transform(encoded_pred)
-            # Explicitly extract Python scalar using .item() to avoid NumPy deprecation warning
-            label = label_array[0].item() if hasattr(label_array[0], 'item') else str(label_array[0])
-            classes = target_encoder.classes_
-            # Convert classes to list if it's a numpy array
-            if hasattr(classes, 'tolist'):
-                classes = classes.tolist()
-            proba_map = {}
-            for disease, prob in zip(classes, proba_array):
-                prob_val = prob.item() if hasattr(prob, 'item') else float(prob)
-                disease_str = str(disease)
-                proba_map[disease_str] = prob_val
+            label_arr = target_encoder.inverse_transform(np.array([int(y_pred)]))
+            label = label_arr[0].item() if hasattr(label_arr[0], "item") else str(label_arr[0])
+            classes = target_encoder.classes_.tolist() if hasattr(target_encoder.classes_, "tolist") else list(target_encoder.classes_)
+            proba_map = {str(c): float(p.item() if hasattr(p, "item") else p) for c, p in zip(classes, proba_array)}
         else:
-            disease_map = {
-                0: "Asthma",
-                1: "Diabetes Mellitus",
-                2: "Healthy",
-                3: "Heart Disease",
-                4: "Hypertension",
-            }
-            label = disease_map.get(int(y_pred), f"Condition_{y_pred}")
-            classes = model.classes_ if hasattr(model, "classes_") else list(range(len(proba_array)))
-            # Convert classes to list if it's a numpy array
-            if hasattr(classes, 'tolist'):
-                classes = classes.tolist()
-            proba_map = {}
-            for c, p in zip(classes, proba_array):
-                # Convert numpy scalars to Python scalars
-                c_val = c.item() if hasattr(c, 'item') else int(c)
-                p_val = p.item() if hasattr(p, 'item') else float(p)
-                disease_name = disease_map.get(int(c_val), f"Condition_{c_val}")
-                proba_map[disease_name] = p_val
-        
-        # Convert numpy scalar to Python float
-        conf_val = np.max(proba_array)
-        conf = float(conf_val.item() if hasattr(conf_val, 'item') else conf_val)
-        
+            dm = {0: "Asthma", 1: "Diabetes Mellitus", 2: "Healthy", 3: "Heart Disease", 4: "Hypertension"}
+            label = dm.get(int(y_pred), f"Condition_{y_pred}")
+            classes = model.classes_.tolist() if hasattr(getattr(model, "classes_", None), "tolist") else list(range(len(proba_array)))
+            proba_map = {dm.get(int(c.item() if hasattr(c, "item") else c), f"Cond_{c}"): float(p.item() if hasattr(p, "item") else p) for c, p in zip(classes, proba_array)}
+
+        conf_raw = np.max(proba_array)
+        conf = float(conf_raw.item() if hasattr(conf_raw, "item") else conf_raw)
     except Exception as e:
         st.error(f"Prediction error: {e}")
         return {"disease": "Unknown", "confidence": 0.0, "risk_level": "unknown", "proba": {}}
 
-    # Risk assessment
-    sbp = v.get("sbp", 0)
-    dbp = v.get("dbp", 0)
-    spo2 = v.get("spo2", 100)
-    
-    if sbp >= 180 or dbp >= 110 or spo2 < 90:
-        risk = "critical"
-    elif sbp >= 160 or dbp >= 100 or spo2 < 92:
-        risk = "high"
-    elif sbp >= 140 or dbp >= 90 or spo2 < 95:
-        risk = "moderate"
-    else:
-        risk = "low"
-    
+    sbp, dbp, spo2 = v.get("sbp", 0), v.get("dbp", 0), v.get("spo2", 100)
+    if   sbp >= 180 or dbp >= 110 or spo2 < 90: risk = "critical"
+    elif sbp >= 160 or dbp >= 100 or spo2 < 92: risk = "high"
+    elif sbp >= 140 or dbp >=  90 or spo2 < 95: risk = "moderate"
+    else:                                         risk = "low"
+
     return {"disease": label, "confidence": conf, "risk_level": risk, "proba": proba_map}
 
-# -------------------------------
-# Recommendations
-# -------------------------------
+# ── Recommendations ───────────────────────────────────────────────────────────
 try:
     HF_TOKEN = st.secrets.get("HF_TOKEN", "")
 except Exception:
     HF_TOKEN = os.getenv("HF_TOKEN", "")
 
-def medgemma_recommend(vitals_dict: dict, ensemble_out: dict) -> dict:
-    """Returns: {'predicted_disease': str, 'recommendations': [..], 'notes': str}"""
-    # Clinically Refined Disease Recommendation Mapping
-    DISEASE_RECOMMENDATIONS = {
-        "Diabetes Mellitus": {
-            "recommendation": (
-                "Maintain structured meal plans with carbohydrate counting and engage in 150+ minutes weekly aerobic activity.\n"
-                "Monitor blood glucose using continuous glucose monitoring when available, targeting HbA1c <7%."
-            ),
-            "notes": (
-                "Schedule comprehensive diabetes screening including fasting glucose, HbA1c, and OGTT if indicated.\n"
-                "Consider GLP-1 receptor agonists for cardiovascular protection and implement structured diabetes self-management education.\n"
-                "Take activity breaks every 30 minutes to optimize glycemic control."
-            )
-        },
-        "Heart Disease": {
-            "recommendation": (
-                "Adopt Mediterranean or DASH dietary patterns with <2,300mg sodium daily and 150+ minutes weekly aerobic exercise.\n"
-                "Include muscle-strengthening activities twice weekly and emphasize healthy fats from olive oil, nuts, and fatty fish."
-            ),
-            "notes": (
-                "Comprehensive cardiovascular risk stratification is recommended using validated calculators.\n"
-                "Consider lipid panel, hs-CRP, and coronary calcium scoring with immediate tobacco cessation if applicable.\n"
-                "Target blood pressure <130/80 mmHg and seek urgent cardiology consultation for chest pain or dyspnea."
-            )
-        },
-        "Hypertension": {
-            "recommendation": (
-                "Target systolic BP 120-129 mmHg through sodium reduction to <1,500mg daily and increased potassium intake.\n"
-                "Follow DASH or Mediterranean dietary patterns while maintaining healthy BMI 18.5-24.9 kg/m²."
-            ),
-            "notes": (
-                "Implement home BP monitoring as 2024 guidelines redefine elevated BP as 120-139/70-89 mmHg.\n"
-                "Consider 24-hour ambulatory monitoring to detect white-coat and masked hypertension.\n"
-                "Weight reduction of 3-5% provides 1 mmHg reduction per kg lost with 7-9 hours nightly sleep."
-            )
-        },
-        "Asthma": {
-            "recommendation": (
-                "Use inhaled corticosteroid (ICS)-containing medication with low-dose ICS-formoterol as preferred Track 1 approach.\n"
-                "Never use SABA alone due to increased mortality risk and implement written asthma action plans."
-            ),
-            "notes": (
-                "Objective testing using FeNO, blood eosinophils, and spirometry with bronchodilator reversibility is essential.\n"
-                "MART approach with ICS-formoterol reduces severe exacerbations by 60-64% compared to SABA-only treatment.\n"
-                "Seek emergency care for peak flow <33% predicted or inability to speak in full sentences."
-            )
-        },
-        "Healthy": {
-            "recommendation": (
-                "Maintain 150-300 minutes moderate-intensity or 75-150 minutes vigorous aerobic activity weekly plus muscle-strengthening twice weekly.\n"
-                "Follow whole food nutrition with adequate protein, healthy fats, and 7-9 hours quality sleep nightly."
-            ),
-            "notes": (
-                "Continue evidence-based preventive care with age-appropriate screenings per USPSTF recommendations.\n"
-                "All physical activity counts toward weekly totals with periodic biomarker monitoring recommended.\n"
-                "Schedule annual preventive evaluations with family health history assessment for genetic predispositions."
-            )
-        }
-    }
-    
-    def generate_intelligent_recommendations(vitals, disease, risk):
-        """Generate disease-specific recommendations"""
-        if disease in DISEASE_RECOMMENDATIONS:
-            base_recommendation = DISEASE_RECOMMENDATIONS[disease]["recommendation"]
-            base_notes = DISEASE_RECOMMENDATIONS[disease]["notes"]
-        else:
-            base_recommendation = "Comprehensive medical evaluation recommended. Monitor vital signs closely and follow up with primary care physician within 1 week."
-            base_notes = f"Medical attention recommended for {disease}. Comprehensive evaluation needed."
-        
-        critical_alerts = []
-        
-        sbp = vitals.get("sbp", 120)
-        dbp = vitals.get("dbp", 80)
-        spo2 = vitals.get("spo2", 98)
-        temp = vitals.get("temperature_c", 37.0)
-        
-        if sbp >= 180 or dbp >= 110:
-            critical_alerts.append(f"🚨 HYPERTENSIVE CRISIS: BP {sbp}/{dbp} mmHg - Immediate medical attention required!")
-            base_notes = f"⚠️ CRITICAL ALERT: Hypertensive emergency detected. {base_notes}"
-        
-        if spo2 < 90:
-            critical_alerts.append(f"🚨 SEVERE HYPOXEMIA: SpO2 {spo2}% - Emergency care needed immediately!")
-            base_notes = f"⚠️ CRITICAL ALERT: Severe hypoxemia requiring immediate intervention. {base_notes}"
-        elif spo2 < 92:
-            critical_alerts.append(f"⚠️ Low oxygen: SpO2 {spo2}% - Seek medical attention promptly")
-        
-        if temp >= 39.0:
-            critical_alerts.append(f"⚠️ High fever: {temp}°C - Medical evaluation recommended")
-        
-        recommendations_list = []
-        if critical_alerts:
-            recommendations_list.extend(critical_alerts)
-        recommendations_list.append(base_recommendation)
-        
-        return {
-            "predicted_disease": disease,
-            "recommendations": recommendations_list,
-            "notes": base_notes
-        }
-    
-    disease = ensemble_out.get("disease", "Unknown")
-    risk = ensemble_out.get("risk_level", "moderate")
-    return generate_intelligent_recommendations(vitals_dict, disease, risk)
+DISEASE_REC = {
+    "Diabetes Mellitus": {
+        "rec": "Maintain structured meal plans with carbohydrate counting and engage in 150+ minutes of weekly aerobic activity. Monitor blood glucose with CGM when available, targeting HbA1c <7%.",
+        "notes": "Schedule comprehensive diabetes screening: fasting glucose, HbA1c, and OGTT if indicated. Consider GLP-1 receptor agonists for cardiovascular protection and implement structured DSME. Take activity breaks every 30 minutes to optimise glycaemic control.",
+    },
+    "Heart Disease": {
+        "rec": "Adopt Mediterranean or DASH dietary patterns with <2,300 mg sodium daily and 150+ minutes of weekly aerobic exercise. Include muscle-strengthening twice weekly; emphasise healthy fats from olive oil, nuts, and fatty fish.",
+        "notes": "Cardiovascular risk stratification using validated calculators is recommended. Consider lipid panel, hs-CRP, and coronary calcium scoring. Immediate tobacco cessation if applicable. Target BP <130/80 mmHg. Seek urgent cardiology consultation for chest pain or dyspnoea.",
+    },
+    "Hypertension": {
+        "rec": "Target systolic BP 120–129 mmHg through sodium reduction to <1,500 mg daily and increased potassium intake. Follow DASH or Mediterranean dietary patterns; maintain BMI 18.5–24.9 kg/m².",
+        "notes": "2024 ESC guidelines redefine elevated BP as 120–139/70–89 mmHg. Implement home BP monitoring and consider 24-hour ambulatory monitoring for white-coat / masked hypertension. Weight reduction of 3–5% yields ~1 mmHg per kg lost. Target 7–9 hours of sleep nightly.",
+    },
+    "Asthma": {
+        "rec": "Use ICS-containing medication; low-dose ICS-formoterol is preferred (GINA 2024 Track 1). Never use SABA alone — increased mortality risk. Implement a written asthma action plan with peak-flow targets.",
+        "notes": "Objective confirmation via FeNO, blood eosinophils, and spirometry with bronchodilator reversibility is essential. The MART approach reduces severe exacerbations by 60–64% vs SABA-only. Seek emergency care for peak flow <33% predicted or inability to speak in full sentences.",
+    },
+    "Healthy": {
+        "rec": "Maintain 150–300 min moderate-intensity or 75–150 min vigorous aerobic activity weekly, plus muscle-strengthening twice weekly. Follow whole-food nutrition, adequate protein, healthy fats, and 7–9 hours of quality sleep.",
+        "notes": "Continue evidence-based preventive care with age-appropriate screenings per USPSTF recommendations. All physical activity counts toward weekly totals. Periodic biomarker monitoring and annual preventive evaluations are recommended, including family history assessment.",
+    },
+}
 
-def bullets_to_md(items):
-    return "\n".join([f"• {x}" for x in items if x])
+def medgemma_recommend(vitals, ensemble_out):
+    disease  = ensemble_out.get("disease", "Unknown")
+    base     = DISEASE_REC.get(disease, {})
+    rec_text = base.get("rec",   f"Comprehensive medical evaluation recommended. Follow up with primary care within 1 week for {disease}.")
+    notes_text = base.get("notes", f"Medical attention recommended. A comprehensive evaluation is needed for {disease}.")
 
-# -------------------------------
-# Sidebar
-# -------------------------------
+    alerts = []
+    sbp  = vitals.get("sbp",           120)
+    dbp  = vitals.get("dbp",            80)
+    spo2 = vitals.get("spo2",           98)
+    temp = vitals.get("temperature_c", 37.0)
+
+    if sbp >= 180 or dbp >= 110:
+        alerts.append(f"🚨 HYPERTENSIVE CRISIS: BP {sbp}/{dbp} mmHg — Immediate emergency care required!")
+        notes_text = f"⚠️ CRITICAL: Hypertensive emergency detected. {notes_text}"
+    if spo2 < 90:
+        alerts.append(f"🚨 SEVERE HYPOXAEMIA: SpO₂ {spo2}% — Emergency care needed immediately!")
+        notes_text = f"⚠️ CRITICAL: Severe hypoxaemia requiring immediate intervention. {notes_text}"
+    elif spo2 < 92:
+        alerts.append(f"⚠️ LOW OXYGEN: SpO₂ {spo2}% — Seek urgent medical attention")
+    if temp >= 39.0:
+        alerts.append(f"⚠️ HIGH FEVER: {temp}°C — Medical evaluation recommended")
+
+    return {"predicted_disease": disease, "recommendations": alerts + [rec_text], "notes": notes_text}
+
+# ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.image("https://img.icons8.com/cotton/128/000000/stethoscope--v2.png", width=100)
-    st.title("About GemmaCare")
-    
-    st.markdown("### 🎯 How It Works")
     st.markdown("""
-    1. **Enter Patient Vitals** - Input vital signs and measurements
-    2. **ML Disease Prediction** - Ensemble model analyzes data (95% accuracy)
-    3. **MedGemma Recommendations** - Google's medical LLM generates evidence-based guidance
-    4. **Critical Alerts** - Automatic flagging of dangerous vitals
-    """)
-    
-    st.divider()
-    
-    st.markdown("### 📊 Model Performance")
-    st.metric("Accuracy", "95.22%", "+2.1%")
-    st.metric("Training Data", "60,000 patients")
-    st.metric("Conditions", "5 categories")
-    
-    st.divider()
-    
-    st.markdown("### 🔍 Detected Conditions")
-    st.markdown("""
-    - 🩺 Diabetes Mellitus
-    - ❤️ Heart Disease
-    - ⚠️ Hypertension
-    - 🫁 Asthma
-    - ✅ Healthy
-    """)
-    
-    st.divider()
-    
-    st.markdown("### 🤖 AI Technologies")
-    st.markdown("""
-    **Disease Prediction:**  
-    XGBoost + LightGBM ensemble (95.22% accuracy)
-    
-    **Recommendations:**  
-    Google MedGemma - Medical instruction-tuned LLM trained on clinical guidelines and medical literature
-    """)
-    
-    st.divider()
-    
-    st.markdown("### ⚡ Key Features")
-    st.markdown("""
-    - 🚨 Critical alert detection
-    - 📋 Evidence-based recommendations
-    - ⚕️ Triage assistance for healthcare providers
-    - 🔒 Secure data processing
-    """)
-    
-    st.divider()
-    st.caption("💡 **Tip:** Use realistic vital signs for best results")
+    <div class="gc-sb-brand">
+      <span class="gc-sb-icon">🩺</span>
+      <h2>GemmaCare</h2>
+      <p>AI Medical Triage System</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-# -------------------------------
-# UI Form
-# -------------------------------
-st.markdown("## 📝 Enter Patient Vitals")
-st.markdown("Fill in the vital signs below for AI-powered health assessment")
+    st.markdown('<div class="gc-sb-section">How It Works</div>', unsafe_allow_html=True)
+    for n, t in [
+        ("1", "Enter patient vitals & measurements"),
+        ("2", "ML ensemble predicts condition"),
+        ("3", "MedGemma generates evidence-based guidance"),
+        ("4", "Critical alerts are automatically flagged"),
+    ]:
+        st.markdown(f"""
+        <div class="gc-sb-step">
+          <span class="gc-sb-step-num">{n}</span>
+          <span>{t}</span>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown('<div class="gc-sb-section">Model Performance</div>', unsafe_allow_html=True)
+    for lbl, val in [("Accuracy", "95.22%"), ("Training Records", "60,000"), ("Conditions Detected", "5")]:
+        st.markdown(f"""
+        <div class="gc-sb-stat">
+          <span>{lbl}</span>
+          <span class="gc-sb-stat-val">{val}</span>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown('<div class="gc-sb-section">Detectable Conditions</div>', unsafe_allow_html=True)
+    for ico, name in [("🩺","Diabetes Mellitus"),("❤️","Heart Disease"),("⚠️","Hypertension"),("🫁","Asthma"),("✅","Healthy")]:
+        st.markdown(f'<div class="gc-sb-cond"><span>{ico}</span><span>{name}</span></div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="gc-sb-section">Key Features</div>', unsafe_allow_html=True)
+    for feat in ["🚨 Critical vital alert detection", "📋 Evidence-based clinical recs",
+                 "⚕️ Healthcare triage assistance",  "🔒 Secure local processing"]:
+        st.markdown(f'<div class="gc-sb-feat">{feat}</div>', unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.caption("💡 Use realistic vital signs for best results.")
+
+# ── Form ──────────────────────────────────────────────────────────────────────
+st.markdown('<div class="gc-results-label"><span>Patient Vitals Entry</span></div>', unsafe_allow_html=True)
 
 with st.form("vitals_form"):
     # Demographics
-    st.markdown("### 👤 Demographics")
-    col1, col2 = st.columns(2)
-    with col1:
-        age = st.number_input("Age (years)", min_value=0, max_value=120, value=58, help="Patient's age in years")
-    with col2:
-        sex = st.selectbox("Sex", ["Female", "Male"], index=0, help="Biological sex")
-    
-    st.divider()
-    
-    # Vital Signs
-    st.markdown("### 🌡️ Vital Signs")
-    col3, col4, col5 = st.columns(3)
-    with col3:
-        temperature_c = st.number_input("Temperature (°C)", min_value=30.0, max_value=45.0, value=37.8, step=0.1, help="Body temperature in Celsius")
-        sbp = st.number_input("Systolic BP (mmHg)", min_value=60, max_value=260, value=120, help="Upper blood pressure number")
-    with col4:
-        dbp = st.number_input("Diastolic BP (mmHg)", min_value=30, max_value=160, value=80, help="Lower blood pressure number")
-        spo2 = st.number_input("SpO₂ (%)", min_value=50.0, max_value=100.0, value=98.0, step=0.5, help="Blood oxygen saturation")
-    with col5:
-        heart_rate = st.number_input("Heart Rate (bpm)", min_value=30, max_value=200, value=75, help="Beats per minute")
-    
-    st.divider()
-    
-    # Body Measurements
-    st.markdown("### 📏 Body Measurements")
-    col6, col7, col8 = st.columns(3)
-    with col6:
-        weight_kg = st.number_input("Weight (kg)", min_value=20.0, max_value=250.0, value=70.0, step=0.1, help="Body weight in kilograms")
-    with col7:
-        height_cm = st.number_input("Height (cm)", min_value=100.0, max_value=220.0, value=170.0, step=0.5, help="Height in centimeters")
-    with col8:
-        bmi_input = st.text_input("BMI (optional)", value="", help="Leave blank for auto-calculation", placeholder="Auto-calculated")
+    st.markdown('<div class="gc-form-section">👤 Demographics</div>', unsafe_allow_html=True)
+    c1, c2, _pad = st.columns([1, 1, 2])
+    with c1:
+        age = st.number_input("Age (years)", min_value=0, max_value=120, value=58)
+    with c2:
+        sex = st.selectbox("Biological Sex", ["Female", "Male"], index=0)
 
-    st.divider()
-    
-    # Symptoms (Optional)
-    with st.expander("➕ Additional Symptoms (Optional)", expanded=False):
+    # Vital Signs
+    st.markdown('<div class="gc-form-section">🌡️ Vital Signs</div>', unsafe_allow_html=True)
+    c3, c4, c5 = st.columns(3)
+    with c3:
+        temperature_c = st.number_input("Temperature (°C)", min_value=30.0, max_value=45.0, value=37.8, step=0.1, help="Body temperature in Celsius")
+        sbp = st.number_input("Systolic BP (mmHg)", min_value=60, max_value=260, value=120, help="Upper blood pressure reading")
+    with c4:
+        dbp = st.number_input("Diastolic BP (mmHg)", min_value=30, max_value=160, value=80, help="Lower blood pressure reading")
+        spo2 = st.number_input("SpO₂ (%)", min_value=50.0, max_value=100.0, value=98.0, step=0.5, help="Blood oxygen saturation")
+    with c5:
+        heart_rate = st.number_input("Heart Rate (bpm)", min_value=30, max_value=200, value=75, help="Beats per minute")
+
+    # Body Measurements
+    st.markdown('<div class="gc-form-section">📏 Body Measurements</div>', unsafe_allow_html=True)
+    c6, c7, c8 = st.columns(3)
+    with c6:
+        weight_kg = st.number_input("Weight (kg)", min_value=1.0, max_value=300.0, value=70.0, step=0.1)
+    with c7:
+        height_cm = st.number_input("Height (cm)", min_value=50.0, max_value=250.0, value=170.0, step=0.5)
+    with c8:
+        bmi_input = st.text_input("BMI (optional)", value="", placeholder="Auto-calculated", help="Leave blank to auto-calculate")
+
+    with st.expander("➕ Additional Symptoms (Optional)"):
         symptoms = st.multiselect(
             "Select any symptoms present",
-            ["Chest Pain", "Shortness of Breath", "Palpitations", "Fatigue", "Dizziness", "Headache", "Nausea", "Sweating"],
-            default=[]
+            ["Chest Pain","Shortness of Breath","Palpitations","Fatigue",
+             "Dizziness","Headache","Nausea","Sweating"],
+            default=[],
         )
 
-    # Submit Button
-    st.markdown("")
-    submitted = st.form_submit_button("🔍 Analyze Patient Vitals", use_container_width=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    submitted = st.form_submit_button("🔍 Run AI Analysis", use_container_width=True)
 
+# ── Results ───────────────────────────────────────────────────────────────────
 if submitted:
-    # Calculate BMI
-    bmi_val = None
+    # Compute BMI
     try:
-        bmi_val = float(bmi_input) if bmi_input.strip() else None
+        bmi_val = float(bmi_input.strip()) if bmi_input.strip() else None
     except ValueError:
         bmi_val = None
     if bmi_val is None:
         bmi_val = compute_bmi(weight_kg, height_cm)
 
-    # Convert sex to model format
     sex_code = "M" if sex == "Male" else "F"
-
     vitals = {
-        "age": age,
-        "sex": sex_code,
+        "age": age, "sex": sex_code,
         "temperature_c": float(temperature_c),
-        "sbp": int(sbp),
-        "dbp": int(dbp),
-        "spo2": float(spo2),
-        "heart_rate": int(heart_rate),
-        "weight_kg": float(weight_kg),
-        "height_cm": float(height_cm),
-        "bmi": bmi_val,
-        "symptoms": symptoms,
+        "sbp": int(sbp), "dbp": int(dbp),
+        "spo2": float(spo2), "heart_rate": int(heart_rate),
+        "weight_kg": float(weight_kg), "height_cm": float(height_cm),
+        "bmi": bmi_val, "symptoms": symptoms,
     }
 
-    with st.spinner("🔬 Running AI analysis..."):
+    with st.spinner("🔬 Running ML analysis…"):
         ens = predict_with_ensemble(vitals)
-
-    with st.spinner("💡 Generating personalized recommendations..."):
+    with st.spinner("💡 Generating clinical recommendations…"):
         ai = medgemma_recommend(vitals, ens)
 
-    # Results screen
-    st.markdown("---")
-    st.markdown("## 🎯 Analysis Results")
-    
-    # Diagnosis Section
     predicted_disease = ai.get("predicted_disease", ens.get("disease", ""))
-    confidence = ens.get("confidence", 0) * 100
-    risk_level = ens.get("risk_level", "unknown")
-    
-    # Color coding
-    if predicted_disease == "Healthy":
-        color = "#28a745"
-        icon = "✅"
-    elif risk_level == "critical":
-        color = "#dc3545"
-        icon = "🚨"
-    elif risk_level == "high":
-        color = "#fd7e14"
-        icon = "⚠️"
-    else:
-        color = "#667eea"
-        icon = "🩺"
-    
-    st.markdown(f"""
-    <div style="background: linear-gradient(135deg, {color}15 0%, {color}30 100%); 
-                border-left: 5px solid {color}; 
-                padding: 1.5rem; 
-                border-radius: 10px;
-                margin: 1rem 0;">
-        <h2 style="margin: 0; color: {color};">{icon} {predicted_disease}</h2>
-        <p style="margin: 0.5rem 0 0 0; color: #666;">Confidence: {confidence:.1f}% | Risk Level: {risk_level.title()}</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Vital Signs Summary
-    col_v1, col_v2, col_v3, col_v4 = st.columns(4)
-    with col_v1:
-        st.metric("Blood Pressure", f"{sbp}/{dbp}", delta="mmHg", delta_color="off")
-    with col_v2:
-        st.metric("SpO₂", f"{spo2}%", delta="Oxygen", delta_color="off")
-    with col_v3:
-        st.metric("Temperature", f"{temperature_c}°C", delta_color="off")
-    with col_v4:
-        st.metric("BMI", f"{bmi_val:.1f}" if bmi_val else "N/A", delta_color="off")
-    
-    st.markdown("---")
-    
-    # Disease Probabilities Section
-    st.markdown("### 📊 Disease Probabilities")
-    
-    # Get probabilities from ensemble output
-    proba_dict = ens.get("proba", {})
-    
-    if proba_dict:
-        # Sort by probability (highest first)
-        sorted_proba = sorted(proba_dict.items(), key=lambda x: x[1], reverse=True)
-        
-        # Create a nice visual display
-        for disease_name, prob in sorted_proba:
-            prob_percent = prob * 100
-            
-            # Color based on probability and if it's the predicted disease
-            if disease_name == predicted_disease:
-                bar_color = "#667eea"  # Purple for predicted disease
-                text_weight = "bold"
-            else:
-                bar_color = "#e0e0e0"  # Gray for others
-                text_weight = "normal"
-            
-            # Create progress bar visualization
-            st.markdown(f"""
-            <div style="margin: 0.5rem 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: {text_weight}; color: #333;">{'🎯 ' if disease_name == predicted_disease else '•  '}{disease_name}</span>
-                    <span style="font-weight: {text_weight}; color: {bar_color};">{prob_percent:.2f}%</span>
-                </div>
-                <div style="background-color: #f0f0f0; border-radius: 10px; height: 8px; margin-top: 0.25rem;">
-                    <div style="background-color: {bar_color}; width: {prob_percent}%; height: 8px; border-radius: 10px;"></div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.info("Probability information not available")
-    
-    st.markdown("---")
-    
-    # Recommendations
-    st.markdown("### 📋 Clinical Recommendations")
+    confidence   = ens.get("confidence", 0) * 100
+    risk_level   = ens.get("risk_level", "unknown")
     recommendations = ai.get("recommendations", [])
-    if recommendations:
-        for i, rec in enumerate(recommendations, 1):
-            if "🚨" in rec or "⚠️" in rec:
-                st.error(rec)
-            else:
-                st.info(f"**{i}.** {rec}")
-    else:
-        st.info("No specific recommendations at this time.")
-    
-    st.markdown("---")
-    
-    # Clinical Notes
-    st.markdown("### 📝 Clinical Notes")
-    notes = ai.get("notes", "")
-    st.markdown(f"""
-    <div style="background-color: #f8f9fa; 
-                padding: 1.2rem; 
-                border-radius: 8px;
-                border-left: 4px solid #667eea;">
-        {notes}
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # Action Buttons
-    col_btn1, col_btn2 = st.columns(2)
-    
-    record = {
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
-        "diagnosis": predicted_disease,
-        "confidence": f"{confidence:.1f}%",
-        "risk_level": risk_level,
-        "vitals": vitals,
-        "recommendations": recommendations,
-        "notes": notes
+    notes        = ai.get("notes", "")
+
+    # Design tokens per risk / disease
+    RISK_CFG = {
+        "critical": dict(border="#ef4444", bg="#fff5f5", pill="gc-pill-critical"),
+        "high":     dict(border="#f97316", bg="#fff7ed", pill="gc-pill-high"),
+        "moderate": dict(border="#eab308", bg="#fefce8", pill="gc-pill-moderate"),
+        "low":      dict(border="#22c55e", bg="#f0fdf4", pill="gc-pill-low"),
     }
-    rec_json = json.dumps(record, indent=2)
-    
-    with col_btn1:
-        st.download_button(
-            "💾 Download Report (JSON)", 
-            data=rec_json, 
-            file_name=f"gemmacare_report_{time.strftime('%Y%m%d_%H%M%S')}.json", 
-            mime="application/json",
-            use_container_width=True
-        )
-    
-    with col_btn2:
-        if st.button("🔄 Analyze Another Patient", use_container_width=True):
-            st.rerun()
-    
-    # Footer Attribution
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; padding: 1rem; color: #666; font-size: 0.9rem;">
-        <p style="margin: 0.25rem 0;">🧠 <strong>Powered by Google MedGemma</strong> - Medical instruction-tuned LLM for evidence-based clinical recommendations</p>
-        <p style="margin: 0.25rem 0;">🔬 Disease prediction: XGBoost + LightGBM ensemble trained on 60,000 patient records</p>
-        <p style="margin: 0.25rem 0;">📋 Recommendations</p>
+    DISEASE_META = {
+        "Healthy":          ("✅", "#22c55e",  "#16a34a"),
+        "Heart Disease":    ("❤️", "#ef4444",  "#dc2626"),
+        "Hypertension":     ("⚠️", "#f97316",  "#ea580c"),
+        "Asthma":           ("🫁", "#06b6d4",  "#0891b2"),
+        "Diabetes Mellitus":("🩺", "#667eea",  "#4f46e5"),
+    }
+    PROB_GRAD = {
+        "Healthy":           ("#22c55e", "#16a34a"),
+        "Heart Disease":     ("#ef4444", "#dc2626"),
+        "Hypertension":      ("#f97316", "#ea580c"),
+        "Asthma":            ("#06b6d4", "#0891b2"),
+        "Diabetes Mellitus": ("#667eea", "#764ba2"),
+    }
+
+    dx_icon, dx_color, dx_dark = DISEASE_META.get(predicted_disease, ("🩺","#667eea","#4f46e5"))
+    risk_cfg = RISK_CFG.get(risk_level, RISK_CFG["low"])
+
+    # ── Section label
+    st.markdown('<div class="gc-results-label"><span>Analysis Results</span></div>', unsafe_allow_html=True)
+
+    # ── Diagnosis card
+    st.markdown(f"""
+    <div class="gc-dx-card" style="background:{risk_cfg['bg']};border-color:{risk_cfg['border']};color:{dx_color};">
+      <span class="gc-dx-icon">{dx_icon}</span>
+      <h2 style="color:{dx_dark};">{predicted_disease}</h2>
+      <div class="gc-dx-row">
+        <span class="gc-pill gc-pill-conf">🎯 {confidence:.1f}% confidence</span>
+        <span class="gc-pill {risk_cfg['pill']}">⚡ {risk_level.upper()} RISK</span>
+        <span style="color:#888;">·</span>
+        <span>{sex} &nbsp;·&nbsp; {age} yrs</span>
+      </div>
     </div>
     """, unsafe_allow_html=True)
 
+    # ── Vitals cards
+    bmi_cat, bmi_fg, bmi_bg = bmi_category(bmi_val)
+    bmi_display = f"{bmi_val:.1f}" if bmi_val else "N/A"
+
+    v_cols = st.columns(5)
+    vitals_display = [
+        ("🩸", "Blood Pressure", f"{sbp}/{dbp}", "mmHg",   vital_status("sbp", sbp)),
+        ("💧", "SpO₂",           f"{spo2}%",    "Oxygen",  vital_status("spo2", spo2)),
+        ("🌡️", "Temperature",   f"{temperature_c}°C", "Body Temp", vital_status("temp", temperature_c)),
+        ("💓", "Heart Rate",     str(heart_rate), "bpm",   vital_status("hr", heart_rate)),
+    ]
+    for col, (emoji, name, val, unit, status) in zip(v_cols[:4], vitals_display):
+        with col:
+            st.markdown(f"""
+            <div class="gc-vital gc-vital-{status}">
+              <span class="gc-vital-emoji">{emoji}</span>
+              <div class="gc-vital-val">{val}</div>
+              <div class="gc-vital-name">{name}</div>
+              <div class="gc-vital-unit">{unit}</div>
+            </div>""", unsafe_allow_html=True)
+
+    with v_cols[4]:
+        st.markdown(f"""
+        <div class="gc-vital gc-vital-ok">
+          <span class="gc-vital-emoji">⚖️</span>
+          <div class="gc-vital-val">{bmi_display}</div>
+          <div class="gc-vital-name">BMI</div>
+          <div class="gc-vital-unit">
+            <span class="gc-pill" style="background:{bmi_bg};color:{bmi_fg};font-size:0.65rem;">{bmi_cat}</span>
+          </div>
+        </div>""", unsafe_allow_html=True)
+
+    # Symptoms
+    if symptoms:
+        tags = "".join(f'<span class="gc-symptom-tag">{s}</span>' for s in symptoms)
+        st.markdown(f"""
+        <div style="margin:0.9rem 0 0.2rem;">
+          <span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#9ca3af;">
+            Reported Symptoms
+          </span><br>{tags}
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Two-column layout: proba left, notes right
+    left_col, right_col = st.columns([5, 6])
+
+    with left_col:
+        st.markdown('<div class="gc-results-label"><span>Disease Probability</span></div>', unsafe_allow_html=True)
+        proba_dict = ens.get("proba", {})
+        if proba_dict:
+            sorted_proba = sorted(proba_dict.items(), key=lambda x: x[1], reverse=True)
+            rows_html = ""
+            for d_name, prob in sorted_proba:
+                pct  = prob * 100
+                g1, g2 = PROB_GRAD.get(d_name, ("#667eea","#764ba2"))
+                is_top = d_name == predicted_disease
+                name_cls = "gc-prob-name top" if is_top else "gc-prob-name"
+                prefix = "🎯 " if is_top else ""
+                rows_html += f"""
+                <div class="gc-prob-row">
+                  <div class="gc-prob-header">
+                    <span class="{name_cls}">{prefix}{d_name}</span>
+                    <span class="gc-prob-pct" style="color:{g1};">{pct:.1f}%</span>
+                  </div>
+                  <div class="gc-bar-track">
+                    <div class="gc-bar-fill" style="width:{pct}%;--c1:{g1};--c2:{g2};"></div>
+                  </div>
+                </div>"""
+            st.markdown(f'<div class="gc-prob-wrap">{rows_html}</div>', unsafe_allow_html=True)
+        else:
+            st.info("Probability data unavailable.")
+
+    with right_col:
+        st.markdown('<div class="gc-results-label"><span>Clinical Notes</span></div>', unsafe_allow_html=True)
+        notes_html = notes.replace("\n", "<br>")
+        st.markdown(f"""
+        <div class="gc-notes">
+          <div class="gc-notes-header">📝 MedGemma Clinical Notes</div>
+          <div class="gc-notes-body">{notes_html}</div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Recommendations
+    st.markdown('<div class="gc-results-label"><span>Clinical Recommendations</span></div>', unsafe_allow_html=True)
+    rec_num = 0
+    for rec in recommendations:
+        if "🚨" in rec:
+            st.error(rec)
+        elif "⚠️" in rec:
+            st.warning(rec)
+        else:
+            rec_num += 1
+            st.markdown(f"""
+            <div class="gc-rec">
+              <div class="gc-rec-num">{rec_num}</div>
+              <div>{rec}</div>
+            </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Actions
+    record = {
+        "timestamp":    time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+        "diagnosis":    predicted_disease,
+        "confidence":   f"{confidence:.1f}%",
+        "risk_level":   risk_level,
+        "bmi_category": bmi_cat,
+        "vitals":       vitals,
+        "recommendations": recommendations,
+        "notes":        notes,
+    }
+    rec_json = json.dumps(record, indent=2)
+
+    dl_col, reset_col = st.columns(2)
+    with dl_col:
+        st.download_button(
+            "💾 Download Report (JSON)",
+            data=rec_json,
+            file_name=f"gemmacare_{time.strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            use_container_width=True,
+        )
+    with reset_col:
+        if st.button("🔄 Analyse Another Patient", use_container_width=True):
+            st.rerun()
+
+    # ── Footer
+    st.markdown("""
+    <div class="gc-footer">
+      🧠 <strong>Powered by Google MedGemma</strong> — Medical instruction-tuned LLM<br>
+      🔬 XGBoost + LightGBM ensemble · 60,000 patient records · 95.22% accuracy<br>
+      📋 ADA 2024–25 &nbsp;·&nbsp; ESC 2024 &nbsp;·&nbsp; GINA 2024 &nbsp;·&nbsp; WHO 2020 &nbsp;·&nbsp; USPSTF
+    </div>
+    """, unsafe_allow_html=True)
