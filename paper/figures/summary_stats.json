@@ -1,0 +1,51 @@
+{
+  "dataset": {
+    "n": 60000,
+    "features": 9,
+    "classes": 5
+  },
+  "train_size": 48000,
+  "test_size": 12000,
+  "ensemble": {
+    "accuracy": 95.25,
+    "precision": 95.2856,
+    "recall": 95.25,
+    "f1": 95.2344,
+    "macro_auc": 99.697
+  },
+  "xgboost": {
+    "accuracy": 95.15,
+    "f1": 95.1351
+  },
+  "lightgbm": {
+    "accuracy": 95.1083,
+    "f1": 95.0932
+  },
+  "per_class": {
+    "Asthma": {
+      "precision": 91.8469,
+      "recall": 92.8902,
+      "f1": 92.3656
+    },
+    "Diabetes Mellitus": {
+      "precision": 94.0466,
+      "recall": 89.6013,
+      "f1": 91.7702
+    },
+    "Healthy": {
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1": 100.0
+    },
+    "Heart Disease": {
+      "precision": 93.0913,
+      "recall": 99.0037,
+      "f1": 95.9565
+    },
+    "Hypertension": {
+      "precision": 97.458,
+      "recall": 94.803,
+      "f1": 96.1122
+    }
+  }
+}

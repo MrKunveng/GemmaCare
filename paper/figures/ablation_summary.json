@@ -1,0 +1,231 @@
+{
+  "feature_ablation": [
+    {
+      "Feature": "Heart Rate",
+      "acc": 89.0833,
+      "f1": 89.0948,
+      "prec": 90.5928,
+      "rec": 89.0833,
+      "Accuracy Drop (pp)": 6.1334
+    },
+    {
+      "Feature": "SpO\u2082",
+      "acc": 90.6333,
+      "f1": 90.5074,
+      "prec": 90.6585,
+      "rec": 90.6333,
+      "Accuracy Drop (pp)": 4.5834
+    },
+    {
+      "Feature": "Systolic BP",
+      "acc": 91.725,
+      "f1": 91.7005,
+      "prec": 91.7749,
+      "rec": 91.725,
+      "Accuracy Drop (pp)": 3.4917
+    },
+    {
+      "Feature": "Diastolic BP",
+      "acc": 92.0417,
+      "f1": 92.027,
+      "prec": 92.1793,
+      "rec": 92.0417,
+      "Accuracy Drop (pp)": 3.175
+    },
+    {
+      "Feature": "Temperature",
+      "acc": 94.35,
+      "f1": 94.2743,
+      "prec": 94.7958,
+      "rec": 94.35,
+      "Accuracy Drop (pp)": 0.8667
+    },
+    {
+      "Feature": "Gender",
+      "acc": 95.2167,
+      "f1": 95.2003,
+      "prec": 95.2568,
+      "rec": 95.2167,
+      "Accuracy Drop (pp)": 0.0
+    },
+    {
+      "Feature": "Weight",
+      "acc": 95.2167,
+      "f1": 95.2011,
+      "prec": 95.2544,
+      "rec": 95.2167,
+      "Accuracy Drop (pp)": 0.0
+    },
+    {
+      "Feature": "Height",
+      "acc": 95.2167,
+      "f1": 95.1998,
+      "prec": 95.2497,
+      "rec": 95.2167,
+      "Accuracy Drop (pp)": 0.0
+    },
+    {
+      "Feature": "BMI",
+      "acc": 95.225,
+      "f1": 95.2101,
+      "prec": 95.2619,
+      "rec": 95.225,
+      "Accuracy Drop (pp)": -0.0083
+    }
+  ],
+  "weight_ablation": [
+    {
+      "Alpha (XGB weight)": 0.0,
+      "Label": "XGB=0.0, LGB=1.0",
+      "acc": 95.1083,
+      "f1": 95.0932,
+      "prec": 95.1445,
+      "rec": 95.1083
+    },
+    {
+      "Alpha (XGB weight)": 0.1,
+      "Label": "XGB=0.1, LGB=0.9",
+      "acc": 95.15,
+      "f1": 95.1347,
+      "prec": 95.1848,
+      "rec": 95.15
+    },
+    {
+      "Alpha (XGB weight)": 0.2,
+      "Label": "XGB=0.2, LGB=0.8",
+      "acc": 95.1583,
+      "f1": 95.1427,
+      "prec": 95.1952,
+      "rec": 95.1583
+    },
+    {
+      "Alpha (XGB weight)": 0.3,
+      "Label": "XGB=0.3, LGB=0.7",
+      "acc": 95.15,
+      "f1": 95.1347,
+      "prec": 95.1851,
+      "rec": 95.15
+    },
+    {
+      "Alpha (XGB weight)": 0.4,
+      "Label": "XGB=0.4, LGB=0.6",
+      "acc": 95.1583,
+      "f1": 95.1422,
+      "prec": 95.1949,
+      "rec": 95.1583
+    },
+    {
+      "Alpha (XGB weight)": 0.5,
+      "Label": "XGB=0.5, LGB=0.5",
+      "acc": 95.2167,
+      "f1": 95.2014,
+      "prec": 95.2545,
+      "rec": 95.2167
+    },
+    {
+      "Alpha (XGB weight)": 0.6,
+      "Label": "XGB=0.6, LGB=0.4",
+      "acc": 95.2083,
+      "f1": 95.1935,
+      "prec": 95.2448,
+      "rec": 95.2083
+    },
+    {
+      "Alpha (XGB weight)": 0.7,
+      "Label": "XGB=0.7, LGB=0.3",
+      "acc": 95.1833,
+      "f1": 95.1689,
+      "prec": 95.2185,
+      "rec": 95.1833
+    },
+    {
+      "Alpha (XGB weight)": 0.8,
+      "Label": "XGB=0.8, LGB=0.2",
+      "acc": 95.1333,
+      "f1": 95.1185,
+      "prec": 95.1678,
+      "rec": 95.1333
+    },
+    {
+      "Alpha (XGB weight)": 0.9,
+      "Label": "XGB=0.9, LGB=0.1",
+      "acc": 95.125,
+      "f1": 95.1103,
+      "prec": 95.162,
+      "rec": 95.125
+    },
+    {
+      "Alpha (XGB weight)": 1.0,
+      "Label": "XGB=1.0, LGB=0.0",
+      "acc": 95.1,
+      "f1": 95.0854,
+      "prec": 95.1372,
+      "rec": 95.1
+    }
+  ],
+  "component_ablation": [
+    {
+      "Configuration": "Random Baseline (No ML)",
+      "acc": 20.5,
+      "f1": 20.5019,
+      "prec": 20.5082,
+      "rec": 20.5
+    },
+    {
+      "Configuration": "Decision Tree (Shallow)",
+      "acc": 94.325,
+      "f1": 94.2828,
+      "prec": 94.3643,
+      "rec": 94.325
+    },
+    {
+      "Configuration": "Random Forest",
+      "acc": 95.3333,
+      "f1": 95.3182,
+      "prec": 95.3802,
+      "rec": 95.3333
+    },
+    {
+      "Configuration": "XGBoost Only",
+      "acc": 95.1,
+      "f1": 95.0854,
+      "prec": 95.1372,
+      "rec": 95.1
+    },
+    {
+      "Configuration": "LightGBM Only",
+      "acc": 95.1083,
+      "f1": 95.0932,
+      "prec": 95.1445,
+      "rec": 95.1083
+    },
+    {
+      "Configuration": "Ensemble (Proposed) \u2014 ML Only",
+      "acc": 95.2167,
+      "f1": 95.2014,
+      "prec": 95.2545,
+      "rec": 95.2167
+    },
+    {
+      "Configuration": "Ensemble + Critical Alert Engine",
+      "acc": 95.2167,
+      "f1": 95.2014,
+      "prec": 95.2545,
+      "rec": 95.2167
+    },
+    {
+      "Configuration": "Full System (Ensemble + Alert + MedGemma)",
+      "acc": 95.2167,
+      "f1": 95.2014,
+      "prec": 95.2545,
+      "rec": 95.2167
+    }
+  ],
+  "baseline_ensemble": {
+    "acc": 95.2167,
+    "f1": 95.2014,
+    "prec": 95.2545,
+    "rec": 95.2167
+  },
+  "optimal_alpha": 0.5
+}

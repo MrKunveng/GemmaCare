@@ -1,0 +1,9 @@
+Configuration,acc,f1,prec,rec
+Random Baseline (No ML),20.5,20.5019,20.5082,20.5
+Decision Tree (Shallow),94.325,94.2828,94.3643,94.325
+Random Forest,95.3333,95.3182,95.3802,95.3333
+XGBoost Only,95.1,95.0854,95.1372,95.1
+LightGBM Only,95.1083,95.0932,95.1445,95.1083
+Ensemble (Proposed) — ML Only,95.2167,95.2014,95.2545,95.2167
+Ensemble + Critical Alert Engine,95.2167,95.2014,95.2545,95.2167
+Full System (Ensemble + Alert + MedGemma),95.2167,95.2014,95.2545,95.2167
